@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { Naer } from "./naer";
+import { Naer } from "../lib/naer";
 import { Temporal } from "temporal-polyfill";
 
 test("schedule on time", async () => {

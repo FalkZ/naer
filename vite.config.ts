@@ -4,7 +4,7 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   plugins: [dts({ include: ["lib"] })],
   test: {
-    include: ["lib/**/*.test.ts"],
+    include: ["test/**/*.test.ts"],
     testTimeout: 1000000,
   },
   build: {

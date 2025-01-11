@@ -54,8 +54,6 @@ const defaultConfig: AgendaConfig = {
   },
 };
 
-const setTimeoutBuffer = 10000;
-
 export class Naer {
   private agenda: Agenda;
   private isInitialized: Promise<boolean>;
@@ -94,22 +92,6 @@ export class Naer {
           };
 
           return runTask();
-
-          const scheduledDate = Temporal.Instant.from(job.attrs.data.date);
-
-          const now = Temporal.Now.instant();
-          const startTime = performance.now();
-          const timeout = now.until(scheduledDate);
-
-          const delay = timeout.total("milliseconds");
-
-          if (timeout.sign === -1) {
-            runTask();
-          } else {
-            setTimeout(() => {
-              runTask();
-            }, delay - (performance.now() - startTime));
-          }
         })
     );
 
@@ -132,6 +114,11 @@ export class Naer {
       },
       cancelAll: async () => {
         await this.isInitialized;
+
+        await this.agenda.drain();
+        // First disable all matching tasks
+        await this.agenda.disable({ name: task.name });
+        // Then remove them
         return (await this.agenda.cancel({ name: task.name })) ?? 0;
       },
     };
