@@ -1,0 +1,33 @@
+{
+  "name": "naer",
+  "version": "0.0.1",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/naer.umd.cjs",
+  "module": "./dist/naer.js",
+  "types": "./dist/naer.d.ts",
+  "exports": {
+    "types": "./dist/naer.d.ts",
+    "import": "./dist/naer.js",
+    "require": "./dist/naer.umd.cjs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "test": "./scripts/test.sh",
+    "build": "tsc --project ./tsconfig-build.json && vite build"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.0.1",
+    "vite-plugin-dts": "^4.5.0",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "agenda": "^5.0.0",
+    "deepmerge": "^4.3.1",
+    "temporal-polyfill": "^0.2.5",
+    "type-fest": "^4.32.0"
+  }
+}
