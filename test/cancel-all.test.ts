@@ -22,7 +22,7 @@ test("tasks can all be cancelled", async () => {
 
   const task = naer.task({
     name: "test-cancel-all",
-    callback: () => {
+    run: () => {
       wasCalled = true;
     },
   });

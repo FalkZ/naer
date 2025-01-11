@@ -13,7 +13,7 @@ type NaerConstructor = {
 
 type TaskArg<Data extends Jsonifiable> = {
   name: string;
-  callback: (data: Data) => void | Promise<void>;
+  run: (data: Data) => void | Promise<void>;
 };
 
 type ScheduleArg<Data extends Jsonifiable> = Data extends undefined
@@ -82,7 +82,7 @@ export class Naer {
         new Promise<void>((resolve, reject) => {
           const runTask = async () => {
             try {
-              await task.callback(job.attrs.data.data);
+              await task.run(job.attrs.data.data);
             } catch (err) {
               this.onError?.("task", err);
               reject(err);

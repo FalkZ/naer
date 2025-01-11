@@ -1,9 +1,10 @@
 {
   "name": "naer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
   "main": "./dist/naer.umd.cjs",
   "module": "./dist/naer.js",
@@ -17,6 +18,9 @@
     "dev": "vite",
     "test": "./scripts/test.sh",
     "build": "tsc --project ./tsconfig-build.json && vite build"
+  },
+  "bin": {
+    "naer-dev": "./scripts/dev.sh"
   },
   "devDependencies": {
     "typescript": "~5.7.2",

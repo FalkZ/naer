@@ -16,7 +16,7 @@ test("schedule on time", async () => {
   const triggerDate = await new Promise<Temporal.Instant>(async (resolve) => {
     const task = naer.task({
       name: "test",
-      callback: () => {
+      run: () => {
         resolve(Temporal.Now.instant());
       },
     });
