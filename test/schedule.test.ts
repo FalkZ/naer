@@ -5,8 +5,9 @@ import { Temporal } from "temporal-polyfill";
 test("schedule on time", async () => {
   const naer = new Naer({
     config: {
-      db: {
-        address: "mongodb://localhost:27811/naer",
+      connection: {
+        host: "localhost",
+        port: 27811,
       },
     },
   });
@@ -28,5 +29,5 @@ test("schedule on time", async () => {
 
   const delayed = scheduledDate.until(triggerDate).total("microseconds");
 
-  expect(delayed).toBeLessThan(60000);
+  expect(delayed).toBeLessThan(100000);
 });

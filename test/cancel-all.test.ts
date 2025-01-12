@@ -8,8 +8,9 @@ const promiseTimeout = (ms: number) =>
 test("tasks can all be cancelled", async () => {
   const naer = new Naer({
     config: {
-      db: {
-        address: "mongodb://localhost:27811/naer",
+      connection: {
+        host: "localhost",
+        port: 27811,
       },
     },
   });

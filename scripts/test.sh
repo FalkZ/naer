@@ -9,12 +9,13 @@ if ! docker info &>/dev/null; then
 	echo "Docker daemon is not running. Please start Docker first."
 	exit 1
 fi
+
 # Remove existing container if it exists
-docker rm -f naer-mongodb-test 2>/dev/null || true
+docker rm -f naer-redis-test 2>/dev/null || true
 
 # Create and run new container
-docker run --name naer-mongodb-test -p 27811:27017 -d mongo:latest
+docker run --name naer-redis-test -p 27811:6379 -d redis:latest
 
 vitest --run
 
-docker rm -f naer-mongodb-test
+docker rm -f naer-redis-test

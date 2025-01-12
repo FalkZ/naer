@@ -29,7 +29,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
-    "agenda": "^5.0.0",
+    "bullmq": "^5.34.8",
     "deepmerge": "^4.3.1",
     "temporal-polyfill": "^0.2.5",
     "type-fest": "^4.32.0"

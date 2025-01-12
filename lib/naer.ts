@@ -1,14 +1,18 @@
-import { Agenda, AgendaConfig, Job } from "agenda";
-import deepMerge from "deepmerge";
+import { Queue, Worker, Job } from "bullmq";
 import { Temporal } from "temporal-polyfill";
 import { Jsonifiable } from "type-fest";
-import { temporalToDate } from "./utils";
+import { getEpochMilliseconds } from "./utils";
 
-type ErrorCb = (type: "startup" | "agenda" | "task", err: unknown) => void;
+type ErrorCb = (type: "startup" | "queue" | "task", err: unknown) => void;
 
 type NaerConstructor = {
   onError?: ErrorCb;
-  config?: AgendaConfig;
+  config?: {
+    connection?: {
+      host?: string;
+      port?: number;
+    };
+  };
 };
 
 type TaskArg<Data extends Jsonifiable> = {
@@ -41,85 +45,85 @@ export type NaerTask<Data extends Jsonifiable> = {
 
 export type NaerTaskInstance = {
   name: string;
-  cancel: () => void;
+  cancel: () => Promise<void>;
 };
 
 const defaultErrorCb: ErrorCb = (type, err) => {
   console.error(`${type} error:`, err);
 };
 
-const defaultConfig: AgendaConfig = {
-  db: {
-    address: "mongodb://localhost:27819/naer",
+const defaultConfig = {
+  connection: {
+    host: "localhost",
+    port: 27819,
   },
 };
 
 export class Naer {
-  private agenda: Agenda;
-  private isInitialized: Promise<boolean>;
+  private queue: Queue;
+  private workers: Map<string, Worker> = new Map();
   private onError: ErrorCb;
 
   constructor({ config = {}, onError = defaultErrorCb }: NaerConstructor = {}) {
-    this.agenda = new Agenda(deepMerge(defaultConfig, config));
-
     this.onError = onError;
+    const mergedConfig = { ...defaultConfig, ...config };
 
-    this.isInitialized = this.agenda
-      .start()
-      .then(() => true)
-      .catch((err) => {
-        this.onError("startup", err);
-        return false;
-      });
+    this.queue = new Queue("naer", {
+      connection: mergedConfig.connection,
+    });
 
-    this.agenda.on("error", (err) => this.onError("agenda", err));
+    this.queue.on("error", (err) => this.onError("queue", err));
   }
 
   task<Data extends Jsonifiable>(task: TaskArg<Data>): NaerTask<Data> {
-    this.agenda.define<{ data: Data; date: string }>(
-      task.name,
-      (job: Job<{ data: Data; date: string }>) =>
-        new Promise<void>((resolve, reject) => {
-          const runTask = async () => {
-            try {
-              await task.run(job.attrs.data.data);
-            } catch (err) {
-              this.onError?.("task", err);
-              reject(err);
-            }
-
-            resolve();
-          };
-
-          return runTask();
-        })
+    const worker = new Worker(
+      "naer",
+      async (job: Job<{ data: Data; date: string }>) => {
+        try {
+          await task.run(job.data.data);
+        } catch (err) {
+          this.onError("task", err);
+          throw err;
+        }
+      },
+      {
+        connection: this.queue.opts.connection,
+      }
     );
+
+    worker.on("error", (err) => this.onError("task", err));
+    this.workers.set(task.name, worker);
 
     const t: NaerTask<Data> = {
       name: task.name,
       schedule: async (schedule) => {
-        await this.isInitialized;
+        const scheduledDate = getEpochMilliseconds(schedule.date);
+        const getDelay = () => scheduledDate - Date.now();
 
-        const scheduledDate = temporalToDate(schedule.date);
-
-        const job = await this.agenda.schedule(scheduledDate, task.name, {
-          date: scheduledDate.toISOString(),
-          data: schedule.data,
-        });
+        const job = await this.queue.add(
+          task.name,
+          {
+            data: schedule.data,
+          },
+          {
+            jobId: `${task.name}-${Date.now()}`,
+            delay: Math.max(0, getDelay()),
+          }
+        );
 
         return {
           name: task.name,
-          cancel: () => job.disable().remove(),
+          cancel: async () => {
+            await job.remove();
+          },
         };
       },
       cancelAll: async () => {
-        await this.isInitialized;
+        const jobs = await this.queue.getJobs();
+        const matchingJobs = jobs.filter((job) => job.name === task.name);
 
-        await this.agenda.drain();
-        // First disable all matching tasks
-        await this.agenda.disable({ name: task.name });
-        // Then remove them
-        return (await this.agenda.cancel({ name: task.name })) ?? 0;
+        await Promise.all(matchingJobs.map((job) => job.remove()));
+        return matchingJobs.length;
       },
     };
 
